@@ -378,13 +378,12 @@ textarea{min-height:110px}
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════════
-// API — все запросы идут на сервер
-// ══════════════════════════════════════════════════════════
-const API = window.location.origin; // автоматически берёт адрес сервера
-
+// ══════════════════════════════════════════════════
+// API
+// ══════════════════════════════════════════════════
+const API_BASE = window.location.origin;
 async function api(path, body) {
-  const r = await fetch(API + path, {
+  const r = await fetch(API_BASE + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -394,39 +393,45 @@ async function api(path, body) {
   return d;
 }
 
-// Сессия — только логин+пароль в localStorage (пароль нужен для API запросов)
+// ══════════════════════════════════════════════════
+// СЕССИЯ
+// ══════════════════════════════════════════════════
 const getSess = () => { try { return JSON.parse(localStorage.getItem('mb_sess')); } catch { return null; } };
-const saveSess = (d) => localStorage.setItem('mb_sess', JSON.stringify(d));
+const saveSess = d => localStorage.setItem('mb_sess', JSON.stringify(d));
 
-function genSubKey() {
-  const seg = () => Math.random().toString(36).slice(2,6).toUpperCase();
-  return seg() + '-' + seg() + '-' + seg() + '-' + seg();
-}
-
-// ── Форматирование даты подписки ──
-function subStatus(expiry) {
-  if (!expiry) return null;
-  const now = Date.now();
-  if (expiry < now) return { ok: false, label: 'Подписка истекла' };
-  const days = Math.ceil((expiry - now) / 86400000);
-  return { ok: true, label: 'Подписка: ещё ' + days + ' дн.' };
-}
-
-// ══════════════════════════════════════════════════════════
-// AUTH SCREENS
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 const sl = ms => new Promise(r => setTimeout(r, ms));
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
+function log(msg, cls) {
+  const el = $('lg'); if (!el) return;
+  const s = document.createElement('span');
+  s.className = 'll ' + (cls||'');
+  s.textContent = '[' + new Date().toLocaleTimeString('ru') + '] ' + msg;
+  el.appendChild(document.createTextNode('\n'));
+  el.appendChild(s);
+  el.scrollTop = el.scrollHeight;
+}
+function prog(cur, tot, lbl) {
+  const p = tot ? Math.round(cur/tot*100) : 0;
+  $('pgb').style.width = p + '%';
+  $('pgl').textContent = (lbl||'') + ': ' + cur + ' / ' + tot + ' (' + p + '%)';
+}
+function setSt(t) { $('st').textContent = t; }
+
+// ══════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════
 function authTab(t) {
   $('authLogin').style.display = t === 'login' ? '' : 'none';
   $('authReg').style.display   = t === 'reg'   ? '' : 'none';
   document.querySelectorAll('.auth-tab').forEach((el,i) => el.classList.toggle('on', (t==='login')===!i));
   $('authErr').style.display = 'none';
 }
-
-function showAuthErr(msg) { const e = $('authErr'); e.textContent = msg; e.style.display = 'block'; }
+function showAuthErr(msg) { const e=$('authErr'); e.textContent=msg; e.style.display='block'; }
 
 async function doLogin() {
   const login = $('aLogin').value.trim();
@@ -453,20 +458,17 @@ async function doRegister() {
     $('uidBadge').style.display = 'block';
     $('authErr').style.display = 'none';
     saveSess({ login, pass });
-    setTimeout(() => afterLoginData(login, pass, { uid: d.uid, subExpiry: null, subActive: false }), 1800);
+    setTimeout(() => afterLoginData(login, pass, { uid: d.uid, subExpiry: null, subActive: false, isAdmin: false }), 1500);
   } catch(e) { showAuthErr(e.message); }
 }
 
-function doLogout() {
-  saveSess(null);
-  location.reload();
-}
+function doLogout() { saveSess(null); location.reload(); }
 
 async function afterLogin(login, pass) {
   try {
     const d = await api('/api/status', { login });
     afterLoginData(login, pass, d);
-  } catch { doLogout(); }
+  } catch { saveSess(null); $('authWrap').style.display = 'flex'; }
 }
 
 function afterLoginData(login, pass, d) {
@@ -480,39 +482,35 @@ function afterLoginData(login, pass, d) {
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// SUBSCRIPTION KEY ACTIVATION
-// ══════════════════════════════════════════════════════════
-function activateKey() {
-  const raw  = $('subKeyInp').value.trim().toUpperCase();
-  const keys = getKeys();
-  const kd   = keys[raw];
-  if (!kd) return subErr('Ключ не найден');
-  if (kd.usedBy) return subErr('Ключ уже использован');
-
-  const sess  = getSess();
-  const users = getUsers();
-  const u     = users[sess];
-  const now   = Date.now();
-  const cur   = (u.subExpiry && u.subExpiry > now) ? u.subExpiry : now;
-  u.subExpiry = cur + kd.days * 86400000;
-  kd.usedBy   = u.id;
-  saveUsers(users);
-  keys[raw] = kd;
-  saveKeys(keys);
-  $('subErr').style.display = 'none';
-  $('subKeyInp').value = '';
-
-  const ss = subStatus(u.subExpiry);
-  $('subWrap').style.display = 'none';
-  showApp(sess, u, ss);
+// ══════════════════════════════════════════════════
+// SUBSCRIPTION
+// ══════════════════════════════════════════════════
+function subStatus(expiry) {
+  if (!expiry) return null;
+  const now = Date.now();
+  if (expiry < now) return { ok: false, label: 'Подписка истекла' };
+  const days = Math.ceil((expiry - now) / 86400000);
+  return { ok: true, label: 'Подписка: ещё ' + days + ' дн.' };
 }
 
-function subErr(msg) { const e = $('subErr'); e.textContent = msg; e.style.display = 'block'; }
+async function activateKey() {
+  const raw  = $('subKeyInp').value.trim().toUpperCase();
+  const sess = getSess();
+  if (!sess) return subErr('Войдите снова');
+  try {
+    const d = await api('/api/activate', { login: sess.login, key: raw });
+    $('subErr').style.display = 'none';
+    $('subKeyInp').value = '';
+    $('subWrap').style.display = 'none';
+    const ss = subStatus(d.subExpiry);
+    showApp(sess.login, sess.pass, null, ss, false);
+  } catch(e) { subErr(e.message); }
+}
+function subErr(msg) { const e=$('subErr'); e.textContent=msg; e.style.display='block'; }
 
-// ══════════════════════════════════════════════════════════
-// SHOW MAIN APP
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════
 let currentUser = null;
 
 async function showApp(login, pass, uid, ss, isAdmin) {
@@ -520,12 +518,11 @@ async function showApp(login, pass, uid, ss, isAdmin) {
   $('mainApp').style.display = 'block';
   $('userPillName').textContent = login;
   const pill = $('subPill');
-  pill.textContent = ss ? ss.label : '—';
-  pill.className   = 'sub-pill' + (ss && ss.ok ? '' : ' exp');
-  // Показываем кнопку админки только для админа
+  pill.textContent = isAdmin ? 'Админ ∞' : (ss ? ss.label : '—');
+  pill.className   = 'sub-pill' + (isAdmin || (ss && ss.ok) ? '' : ' exp');
   $('admPill').style.display = isAdmin ? 'block' : 'none';
 
-  // Загружаем сохранённые почты с сервера
+  // Загружаем почты с сервера
   try {
     const d = await api('/api/emails/get', { login, pass });
     accounts = (d.emails || []).map(e => ({ ...e, name: '' }));
@@ -534,12 +531,12 @@ async function showApp(login, pass, uid, ss, isAdmin) {
   $('accAvail').textContent = accounts.length;
   const inp = $('accCount'); inp.max = accounts.length;
   if (!inp.value || parseInt(inp.value) > accounts.length) inp.value = Math.min(accounts.length, 1) || 1;
-  renderAcc();
-  refreshTotal();
-  log('Добро пожаловать, ' + login + '. Загружено ' + accounts.length + ' почт из профиля.', 'ok');
+  renderAcc(); refreshTotal();
+  log('Добро пожаловать, ' + login + '. Почт: ' + accounts.length, 'ok');
 
-  // Периодическая проверка подписки
+  // Проверка подписки каждую минуту
   setInterval(async () => {
+    if (isAdmin) return;
     try {
       const d = await api('/api/status', { login });
       if (!d.subActive) doLogout();
@@ -547,21 +544,11 @@ async function showApp(login, pass, uid, ss, isAdmin) {
   }, 60000);
 }
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // ADMIN PANEL
-// ══════════════════════════════════════════════════════════
-function openAdmin() {
-  const pw = prompt('Пароль администратора:');
-  if (pw !== ADMIN_PASSWORD) { alert('Неверный пароль'); return; }
-  renderAdminKeys();
-  renderAdminUsers();
-  const el = $('admWrap'); el.style.display = 'flex';
-}
-function closeAdmin() { $('admWrap').style.display = 'none'; }
-
+// ══════════════════════════════════════════════════
 let _admPw = null;
 
-// Для обычных пользователей — показываем модальное окно с паролем
 function openAdmin() {
   $('admModalInp').value = '';
   $('admModal').style.display = 'flex';
@@ -584,7 +571,6 @@ async function submitAdmModal() {
   }
 }
 
-// Для аккаунта stmp — открываем сразу без пароля
 async function openAdminDirect() {
   if (!currentUser || !currentUser.isAdmin) return;
   _admPw = null;
@@ -595,25 +581,25 @@ async function openAdminDirect() {
 
 function closeAdmin() { $('admWrap').style.display = 'none'; }
 
+function admBody(extra) {
+  return _admPw
+    ? { adminPass: _admPw, ...extra }
+    : { login: currentUser.login, pass: currentUser.pass, ...extra };
+}
+
 async function genKey() {
   const days = parseInt($('keyDays').value) || 30;
-  const body = _admPw
-    ? { adminPass: _admPw, days }
-    : { login: currentUser.login, pass: currentUser.pass, days };
   try {
-    const d = await api('/api/admin/genkey', body);
+    const d = await api('/api/admin/genkey', admBody({ days }));
     navigator.clipboard.writeText(d.key).catch(() => {});
-    alert('Ключ создан:\n' + d.key + '\n\n(скопирован в буфер)');
+    alert('Ключ: ' + d.key + '\n(скопирован)');
     await renderAdminKeys();
   } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
 async function renderAdminKeys() {
-  const body = _admPw
-    ? { adminPass: _admPw }
-    : { login: currentUser.login, pass: currentUser.pass };
   try {
-    const d  = await api('/api/admin/keys', body);
+    const d  = await api('/api/admin/keys', admBody({}));
     const el = $('keyList'); el.innerHTML = '';
     const list = Object.entries(d.keys).sort((a,b) => b[1].createdAt - a[1].createdAt);
     if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет ключей</div>'; return; }
@@ -623,18 +609,15 @@ async function renderAdminKeys() {
       div.innerHTML =
         '<span class="key-val ' + (kd.usedBy ? 'key-used' : '') + '">' + key + '</span>' +
         '<span class="key-meta">' + kd.days + ' дн · ' + date + (kd.usedBy ? ' · использован' : '') + '</span>' +
-        '<span style="cursor:pointer;color:var(--ora);font-size:14px;padding:0 4px" onclick="navigator.clipboard.writeText('' + key + '')" title="Скопировать">⎘</span>';
+        '<span style="cursor:pointer;color:var(--ora);font-size:14px;padding:0 6px" onclick="navigator.clipboard.writeText('' + key + '')" title="Скопировать">⎘</span>';
       el.appendChild(div);
     });
   } catch(e) { console.error(e); }
 }
 
 async function renderAdminUsers() {
-  const body = _admPw
-    ? { adminPass: _admPw }
-    : { login: currentUser.login, pass: currentUser.pass };
   try {
-    const d  = await api('/api/admin/users', body);
+    const d  = await api('/api/admin/users', admBody({}));
     const el = $('userList'); el.innerHTML = '';
     const list = Object.entries(d.users);
     if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет пользователей</div>'; return; }
@@ -644,7 +627,7 @@ async function renderAdminUsers() {
       div.innerHTML =
         '<div class="u-name">' + login + '</div>' +
         '<div class="u-id">ID: ' + u.id + '</div>' +
-        '<div class="u-sub ' + (u.subActive ? 'ok' : 'exp') + '">' + (u.subActive ? '✓ Активна до ' + exp : '✗ Нет подписки') + '</div>';
+        '<div class="u-sub ' + (u.subActive ? 'ok' : 'exp') + '">' + (u.subActive ? '✓ до ' + exp : '✗ нет подписки') + '</div>';
       el.appendChild(div);
     });
   } catch(e) { console.error(e); }
@@ -653,31 +636,25 @@ async function renderAdminUsers() {
 async function extendUser() {
   const uid  = $('admUserId').value.trim();
   const days = parseInt($('admExtDays').value) || 30;
-  if (!uid) return;
-  const body = _admPw
-    ? { adminPass: _admPw, uid, days }
-    : { login: currentUser.login, pass: currentUser.pass, uid, days };
+  if (!uid) return alert('Введите ID пользователя');
   try {
-    await api('/api/admin/extend', body);
+    await api('/api/admin/extend', admBody({ uid, days }));
     await renderAdminUsers();
-    alert('✓ Подписка продлена на ' + days + ' дней');
+    alert('✓ Продлено на ' + days + ' дней');
   } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
 async function revokeUser() {
   const uid = $('admUserId').value.trim();
-  if (!uid) return;
-  if (!confirm('Заблокировать пользователя?')) return;
-  const body = _admPw
-    ? { adminPass: _admPw, uid }
-    : { login: currentUser.login, pass: currentUser.pass, uid };
+  if (!uid) return alert('Введите ID пользователя');
+  if (!confirm('Заблокировать?')) return;
   try {
-    await api('/api/admin/revoke', body);
+    await api('/api/admin/revoke', admBody({ uid }));
     await renderAdminUsers();
   } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
-// Секретный хоткей: -=\ → открыть админку
+// Хоткей -=\ для открытия админки
 const _admKeys = new Set();
 document.addEventListener('keydown', e => {
   if (['-','=','\\'].includes(e.key)) {
@@ -686,9 +663,9 @@ document.addEventListener('keydown', e => {
   } else { _admKeys.clear(); }
 });
 
-// ══════════════════════════════════════════════════════════
-// CORE STATE
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// ACCOUNTS
+// ══════════════════════════════════════════════════
 let accounts  = [];
 let recips    = [];
 let tasks     = [];
@@ -698,25 +675,134 @@ let stopped   = false;
 let busy      = false;
 let generated = false;
 
-function log(msg, cls) {
-  const el = $('lg');
-  const s = document.createElement('span');
-  s.className = 'll ' + (cls||'');
-  s.textContent = '[' + new Date().toLocaleTimeString('ru') + '] ' + msg;
-  el.appendChild(document.createTextNode('\n'));
-  el.appendChild(s);
-  el.scrollTop = el.scrollHeight;
+function maskEmail(email) {
+  const [user, domain] = email.split('@');
+  return user.slice(0,3) + '***@' + domain;
 }
-function prog(cur, tot, lbl) {
-  const p = tot ? Math.round(cur/tot*100) : 0;
-  $('pgb').style.width = p + '%';
-  $('pgl').textContent = (lbl||'') + ': ' + cur + ' / ' + tot + ' (' + p + '%)';
-}
-function setSt(t) { $('st').textContent = t; }
 
-// ══════════════════════════════════════════════════════════
-// CORE REPHRASE LOGIC
-// ══════════════════════════════════════════════════════════
+async function saveAccountsForUser() {
+  if (!currentUser) return;
+  try {
+    await api('/api/emails/save', {
+      login: currentUser.login,
+      pass:  currentUser.pass,
+      emails: accounts.map(a => ({ email: a.email, pass: a.pass }))
+    });
+  } catch(e) { console.warn('Не удалось сохранить почты:', e.message); }
+}
+
+function loadAccFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => parseAcc(e.target.result);
+  r.readAsText(f); inp.value = '';
+}
+
+function parseAcc(raw) {
+  const newAccs = [];
+  for (const line of raw.trim().split('\n')) {
+    const t = line.trim(); if (!t || t.startsWith('#')) continue;
+    const ci = t.indexOf(':'); if (ci < 0) continue;
+    const email = t.slice(0, ci).trim().toLowerCase();
+    const pass  = t.slice(ci+1).trim();
+    if (email.includes('@') && pass && !accounts.find(a => a.email === email))
+      newAccs.push({ email, pass, name: '' });
+  }
+  accounts = [...accounts, ...newAccs];
+  saveAccountsForUser();
+  $('accAvail').textContent = accounts.length;
+  const inp = $('accCount'); inp.max = accounts.length;
+  if (parseInt(inp.value) > accounts.length) inp.value = accounts.length;
+  generated = false; $('btnSend').disabled = true;
+  renderAcc(); refreshTotal();
+  log('Добавлено ' + newAccs.length + ' почт. Всего: ' + accounts.length, 'ok');
+}
+
+function removeAcc(i) {
+  accounts.splice(i, 1);
+  saveAccountsForUser();
+  $('accAvail').textContent = accounts.length;
+  renderAcc(); refreshTotal();
+}
+
+function renderAcc() {
+  const el = $('alist'); el.innerHTML = '';
+  $('acnt').textContent = accounts.length + ' почт';
+  const active = parseInt($('accCount').value) || 0;
+  accounts.forEach((a, i) => {
+    const isActive = i < active;
+    const d = document.createElement('div');
+    d.className = 'arow' + (isActive ? '' : ' inactive');
+    d.innerHTML =
+      '<span class="adot" id="ad' + i + '"></span>' +
+      '<span class="aemail">' + maskEmail(a.email) + '</span>' +
+      '<span class="aname" id="an' + i + '">' + (a.name || (isActive ? '—' : 'пропуск')) + '</span>' +
+      '<span class="a-del" onclick="removeAcc(' + i + ')" title="Удалить">✕</span>';
+    el.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════════
+// RECIPIENTS
+// ══════════════════════════════════════════════════
+const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+
+function loadRecipFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const ex = $('ri').value.trim();
+    $('ri').value = ex ? ex + '\n' + e.target.result : e.target.result;
+    parseR(); log('Получатели загружены', 'ok');
+  };
+  r.readAsText(f); inp.value = '';
+}
+
+function parseR() {
+  recips = [...new Set(($('ri').value.match(EMAIL_RE)||[]).map(e => e.toLowerCase()))];
+  renderR(); refreshTotal();
+}
+
+function renderR() {
+  const c = $('rtags'); c.innerHTML = '';
+  recips.slice(0,12).forEach((e,i) => {
+    const t = document.createElement('div'); t.className='rtag';
+    t.innerHTML = e + ' <span class="rx" data-idx="' + i + '">×</span>';
+    c.appendChild(t);
+  });
+  if (recips.length > 12) {
+    const m = document.createElement('div'); m.className='rtag';
+    m.style.color='var(--dim)'; m.textContent='+' + (recips.length-12) + ' ещё'; c.appendChild(m);
+  }
+  $('rmeta').textContent = recips.length + ' получател' + (recips.length===1?'ь':recips.length<5?'я':'ей');
+}
+
+document.getElementById('rtags').addEventListener('click', e => {
+  const btn = e.target.closest('.rx'); if (!btn) return;
+  recips.splice(parseInt(btn.dataset.idx),1);
+  $('ri').value = recips.join('\n');
+  renderR(); refreshTotal();
+});
+
+function onAccCountChange() {
+  const max = accounts.length;
+  const inp = $('accCount');
+  let v = parseInt(inp.value)||1;
+  if (v < 1) v = 1; if (max > 0 && v > max) v = max;
+  inp.value = v; renderAcc(); refreshTotal();
+}
+function getActive() { return accounts.slice(0, Math.min(parseInt($('accCount').value)||1, accounts.length)); }
+function refreshTotal() { const n=getActive().length,r=recips.length; $('st2').textContent=n*r; $('sq').textContent=n*r; }
+
+document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.vbtn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); paraLevel = b.dataset.l;
+}));
+function setDelay(v) { sendDelay=parseFloat(v); $('dv').textContent=sendDelay.toFixed(1)+' сек'; }
+
+// ══════════════════════════════════════════════════
+// REPHRASE LOGIC
+// ══════════════════════════════════════════════════
 // Словарь синонимов (фразы → варианты через |)
 const SYN = {
   // Обращения и вводные
@@ -883,151 +969,9 @@ function localGenSubject(baseSubj, idx) {
   return SUBJ_TPL[idx % SUBJ_TPL.length](baseSubj);
 }
 
-// ══════════════════════════════════════════════════════════
-// ACCOUNTS — сохранение в профиль пользователя
-// ══════════════════════════════════════════════════════════
-async function saveAccountsForUser() {
-  if (!currentUser) return;
-  try {
-    await api('/api/emails/save', {
-      login: currentUser.login,
-      pass:  currentUser.pass,
-      emails: accounts.map(a => ({ email: a.email, pass: a.pass }))
-    });
-  } catch(e) { console.warn('Не удалось сохранить почты:', e.message); }
-}
-
-function maskEmail(email) {
-  const [user, domain] = email.split('@');
-  const masked = user.slice(0,3) + '***';
-  return masked + '@' + domain;
-}
-
-function loadAccFile(inp) {
-  const f = inp.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = e => parseAcc(e.target.result);
-  r.readAsText(f);
-  inp.value = '';
-}
-
-function parseAcc(raw) {
-  const newAccs = [];
-  for (const line of raw.trim().split('\n')) {
-    const t = line.trim(); if (!t || t.startsWith('#')) continue;
-    const ci = t.indexOf(':'); if (ci < 0) continue;
-    const email = t.slice(0, ci).trim().toLowerCase();
-    const pass  = t.slice(ci+1).trim();
-    if (email.includes('@') && pass && !accounts.find(a => a.email === email))
-      newAccs.push({ email, pass, name: '' });
-  }
-  accounts = [...accounts, ...newAccs];
-  saveAccountsForUser();
-  $('accAvail').textContent = accounts.length;
-  const inp = $('accCount'); inp.max = accounts.length;
-  if (parseInt(inp.value) > accounts.length) inp.value = accounts.length;
-  generated = false; $('btnSend').disabled = true;
-  renderAcc();
-  refreshTotal();
-  log('Добавлено ' + newAccs.length + ' новых почт. Всего: ' + accounts.length, 'ok');
-}
-
-function removeAcc(i) {
-  accounts.splice(i, 1);
-  saveAccountsForUser();
-  $('accAvail').textContent = accounts.length;
-  renderAcc(); refreshTotal();
-}
-
-function renderAcc() {
-  const el = $('alist'); el.innerHTML = '';
-  $('acnt').textContent = accounts.length + ' почт';
-  const active = parseInt($('accCount').value) || 0;
-  accounts.forEach((a, i) => {
-    const isActive = i < active;
-    const d = document.createElement('div');
-    d.className = 'arow' + (isActive ? '' : ' inactive');
-    d.innerHTML =
-      '<span class="adot" id="ad' + i + '"></span>' +
-      '<span class="aemail">' + maskEmail(a.email) + '</span>' +
-      '<span class="aname" id="an' + i + '">' + (a.name || (isActive ? '—' : 'пропуск')) + '</span>' +
-      '<span class="a-del" onclick="removeAcc(' + i + ')" title="Удалить">✕</span>';
-    el.appendChild(d);
-  });
-}
-
-// ══════════════════════════════════════════════════════════
-// RECIPIENTS
-// ══════════════════════════════════════════════════════════
-const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-
-function loadRecipFile(inp) {
-  const f = inp.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = e => {
-    const ex = $('ri').value.trim();
-    $('ri').value = ex ? ex + '\n' + e.target.result : e.target.result;
-    parseR(); log('Получатели загружены из файла', 'ok');
-  };
-  r.readAsText(f); inp.value = '';
-}
-
-function parseR() {
-  recips = [...new Set(($('ri').value.match(EMAIL_RE)||[]).map(e => e.toLowerCase()))];
-  renderR(); refreshTotal();
-}
-
-function renderR() {
-  const c = $('rtags'); c.innerHTML = '';
-  recips.slice(0,12).forEach((e,i) => {
-    const t = document.createElement('div'); t.className='rtag';
-    t.innerHTML = e + ' <span class="rx" data-idx="' + i + '">×</span>';
-    c.appendChild(t);
-  });
-  if (recips.length > 12) {
-    const m = document.createElement('div'); m.className='rtag';
-    m.style.color='var(--dim)'; m.textContent='+'+(recips.length-12)+' ещё'; c.appendChild(m);
-  }
-  $('rmeta').textContent = recips.length + ' получател' + (recips.length===1?'ь':recips.length<5?'я':'ей');
-}
-
-document.getElementById('rtags').addEventListener('click', e => {
-  const btn = e.target.closest('.rx'); if (!btn) return;
-  recips.splice(parseInt(btn.dataset.idx),1);
-  $('ri').value = recips.join('\n');
-  renderR(); refreshTotal();
-});
-
-// ══════════════════════════════════════════════════════════
-// ACC COUNT / DELAY
-// ══════════════════════════════════════════════════════════
-function onAccCountChange() {
-  const max = accounts.length;
-  const inp = $('accCount');
-  let v = parseInt(inp.value)||1;
-  if (v < 1) v = 1; if (max > 0 && v > max) v = max;
-  inp.value = v; renderAcc(); refreshTotal();
-}
-
-function getActive() {
-  const n = Math.min(parseInt($('accCount').value)||1, accounts.length);
-  return accounts.slice(0,n);
-}
-
-function refreshTotal() {
-  const n = getActive().length, r = recips.length;
-  $('st2').textContent = n*r; $('sq').textContent = n*r;
-}
-
-document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.vbtn').forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); paraLevel = b.dataset.l;
-}));
-function setDelay(v) { sendDelay=parseFloat(v); $('dv').textContent=sendDelay.toFixed(1)+' сек'; }
-
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // GENERATE
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 async function doGenerate() {
   if (busy) return;
   const activeAccs = getActive();
@@ -1042,7 +986,6 @@ async function doGenerate() {
 
   const baseSubj = $('subj').value.trim() || 'Жалоба';
   const pl = $('pl'); pl.innerHTML='';
-
   tasks=[];
   for (let ai=0; ai<activeAccs.length; ai++)
     for (let ri=0; ri<recips.length; ri++)
@@ -1050,7 +993,7 @@ async function doGenerate() {
 
   const total=tasks.length;
   $('st2').textContent=total; $('sq').textContent=total;
-  $('so').textContent=0;      $('se').textContent=0;
+  $('so').textContent=0; $('se').textContent=0;
 
   for (const {ai,ri,idx} of tasks) {
     const d=document.createElement('div'); d.className='pi';
@@ -1068,18 +1011,16 @@ async function doGenerate() {
   log('▶ Генерация '+total+' вариантов...', 'inf');
   prog(0, total, 'Генерация');
 
-  // Всё синхронно
   for (const task of tasks) {
-    const {ai,ri,idx}=task; const acc=activeAccs[ai];
+    const {ai,idx}=task; const acc=activeAccs[ai];
     if (!acc.name) { acc.name=rndName(); const an=$('an'+ai); if(an) an.textContent=acc.name; }
     task.name=acc.name;
     task.subject=localGenSubject(baseSubj,idx);
     task.text=localRephrase(origText,paraLevel);
   }
 
-  // DOM батчем
   for (const task of tasks) {
-    const {ai,ri,idx}=task; const acc=activeAccs[ai];
+    const {ai,idx}=task; const acc=activeAccs[ai];
     $('pfr'+idx).textContent='От: '+acc.name+' <'+maskEmail(acc.email)+'>';
     $('psubj'+idx).textContent='Тема: '+task.subject;
     $('pt'+idx).textContent=task.text.length>200?task.text.slice(0,200)+'…':task.text;
@@ -1094,15 +1035,14 @@ async function doGenerate() {
   log('✓ '+total+' вариантов готовы. Нажмите «▶ Отправить все»', 'ok');
 }
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 // SEND
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 async function doSend() {
   if (busy||!generated||!tasks.length) return;
   busy=true; stopped=false;
   $('btnGen').disabled=true; $('btnSend').disabled=true; $('btnStop').disabled=false;
   setSt('Отправка...');
-
   const activeAccs=getActive();
   let ok=0,err=0; const total=tasks.length;
   log('▶ Отправка '+total+' писем...', 'inf');
@@ -1115,9 +1055,14 @@ async function doSend() {
     pb.className='pb gen'; pb.textContent='📤 отправка...';
     if(dot) dot.className='adot act';
     setSt('Отправка '+(i+1)+'/'+total); prog(i,total,'Отправка');
-
     try {
-      await sendMail({from:acc.email,pass:acc.pass,fromName:task.name,to:recip,subject:task.subject,body:task.text});
+      await api('/api/send', {
+        login: currentUser.login,
+        pass:  currentUser.pass,
+        from: acc.email, fromPass: acc.pass,
+        fromName: task.name, to: recip,
+        subject: task.subject, body: task.text
+      });
       ok++; $('so').textContent=ok; $('sq').textContent=Math.max(0,total-ok-err);
       pb.className='pb sent'; pb.textContent='✓ отправлено';
       if(dot) dot.className='adot done';
@@ -1139,14 +1084,6 @@ async function doSend() {
 
 function stopAll() { stopped=true; $('btnStop').disabled=true; setSt('Останавливаю...'); log('Стоп', 'wn'); }
 
-async function sendMail({from,pass,fromName,to,subject,body}) {
-  await api('/api/send', {
-    login: currentUser.login,
-    pass:  currentUser.pass,
-    from, fromPass: pass, fromName, to, subject, body
-  });
-}
-
 function doReset() {
   if(busy) return;
   recips=[]; tasks=[]; generated=false;
@@ -1160,9 +1097,9 @@ function doReset() {
   setSt('Готов'); log('Сброс', 'inf');
 }
 
-// ══════════════════════════════════════════════════════════
-// BOOT — проверяем сессию
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════
 (function boot() {
   const sess = getSess();
   if (sess && sess.login && sess.pass) {
@@ -1172,5 +1109,4 @@ function doReset() {
   $('authWrap').style.display = 'flex';
 })();
 </script>
-</body>
 </html>
