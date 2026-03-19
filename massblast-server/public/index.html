@@ -597,6 +597,8 @@ async function genKey() {
   } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
+function copyToClip(el) { navigator.clipboard.writeText(el.dataset.key).catch(()=>{}); el.textContent='✓'; setTimeout(()=>el.textContent='⎘',1500); }
+
 async function renderAdminKeys() {
   try {
     const d  = await api('/api/admin/keys', admBody({}));
@@ -609,7 +611,7 @@ async function renderAdminKeys() {
       div.innerHTML =
         '<span class="key-val ' + (kd.usedBy ? 'key-used' : '') + '">' + key + '</span>' +
         '<span class="key-meta">' + kd.days + ' дн · ' + date + (kd.usedBy ? ' · использован' : '') + '</span>' +
-        '<span style="cursor:pointer;color:var(--ora);font-size:14px;padding:0 6px" onclick="navigator.clipboard.writeText('' + key + '')" title="Скопировать">⎘</span>';
+        '<span style="cursor:pointer;color:var(--ora);font-size:14px;padding:0 6px" onclick="copyToClip(this)" data-key="' + key + '" title="Скопировать">⎘</span>';
       el.appendChild(div);
     });
   } catch(e) { console.error(e); }
