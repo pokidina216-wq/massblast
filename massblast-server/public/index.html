@@ -559,80 +559,122 @@ function openAdmin() {
 }
 function closeAdmin() { $('admWrap').style.display = 'none'; }
 
-function genKey() {
+let _admPw = null;
+
+// Для обычных пользователей — показываем модальное окно с паролем
+function openAdmin() {
+  $('admModalInp').value = '';
+  $('admModal').style.display = 'flex';
+  setTimeout(() => $('admModalInp').focus(), 100);
+}
+function closeAdmModal() { $('admModal').style.display = 'none'; }
+async function submitAdmModal() {
+  const pw = $('admModalInp').value;
+  if (!pw) return;
+  try {
+    await api('/api/admin/keys', { adminPass: pw });
+    _admPw = pw;
+    closeAdmModal();
+    await renderAdminKeys();
+    await renderAdminUsers();
+    $('admWrap').style.display = 'flex';
+  } catch {
+    $('admModalInp').style.borderColor = 'var(--red)';
+    setTimeout(() => $('admModalInp').style.borderColor = '', 1000);
+  }
+}
+
+// Для аккаунта stmp — открываем сразу без пароля
+async function openAdminDirect() {
+  if (!currentUser || !currentUser.isAdmin) return;
+  _admPw = null;
+  await renderAdminKeys();
+  await renderAdminUsers();
+  $('admWrap').style.display = 'flex';
+}
+
+function closeAdmin() { $('admWrap').style.display = 'none'; }
+
+async function genKey() {
   const days = parseInt($('keyDays').value) || 30;
-  const key  = genSubKey();
-  const keys = getKeys();
-  keys[key]  = { days, createdAt: Date.now(), usedBy: null };
-  saveKeys(keys);
-  renderAdminKeys();
+  const body = _admPw
+    ? { adminPass: _admPw, days }
+    : { login: currentUser.login, pass: currentUser.pass, days };
+  try {
+    const d = await api('/api/admin/genkey', body);
+    navigator.clipboard.writeText(d.key).catch(() => {});
+    alert('Ключ создан:\n' + d.key + '\n\n(скопирован в буфер)');
+    await renderAdminKeys();
+  } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
-function renderAdminKeys() {
-  const keys = getKeys();
-  const el   = $('keyList'); el.innerHTML = '';
-  const list = Object.entries(keys).sort((a,b) => b[1].createdAt - a[1].createdAt);
-  if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет ключей</div>'; return; }
-  list.forEach(([key, kd]) => {
-    const d = document.createElement('div');
-    d.className = 'key-item';
-    const date = new Date(kd.createdAt).toLocaleDateString('ru');
-    d.innerHTML =
-      '<span class="key-val ' + (kd.usedBy ? 'key-used' : '') + '">' + key + '</span>' +
-      '<span class="key-meta">' + kd.days + ' дн. · ' + date + (kd.usedBy ? ' · использован' : '') + '</span>' +
-      '<span style="cursor:pointer;color:var(--dim);font-size:11px" onclick="copyKey(\''+ key +'\')" title="Скопировать">⎘</span>';
-    el.appendChild(d);
-  });
+async function renderAdminKeys() {
+  const body = _admPw
+    ? { adminPass: _admPw }
+    : { login: currentUser.login, pass: currentUser.pass };
+  try {
+    const d  = await api('/api/admin/keys', body);
+    const el = $('keyList'); el.innerHTML = '';
+    const list = Object.entries(d.keys).sort((a,b) => b[1].createdAt - a[1].createdAt);
+    if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет ключей</div>'; return; }
+    list.forEach(([key, kd]) => {
+      const div = document.createElement('div'); div.className = 'key-item';
+      const date = new Date(kd.createdAt).toLocaleDateString('ru');
+      div.innerHTML =
+        '<span class="key-val ' + (kd.usedBy ? 'key-used' : '') + '">' + key + '</span>' +
+        '<span class="key-meta">' + kd.days + ' дн · ' + date + (kd.usedBy ? ' · использован' : '') + '</span>' +
+        '<span style="cursor:pointer;color:var(--ora);font-size:14px;padding:0 4px" onclick="navigator.clipboard.writeText('' + key + '')" title="Скопировать">⎘</span>';
+      el.appendChild(div);
+    });
+  } catch(e) { console.error(e); }
 }
 
-function copyKey(key) { navigator.clipboard.writeText(key).catch(()=>{}); }
-
-function renderAdminUsers() {
-  const users = getUsers();
-  const el = $('userList'); el.innerHTML = '';
-  const list = Object.entries(users);
-  if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет пользователей</div>'; return; }
-  list.forEach(([login, u]) => {
-    const ss  = subStatus(u.subExpiry);
-    const d   = document.createElement('div');
-    d.className = 'user-item';
-    const subLabel = ss ? ss.label : 'Нет подписки';
-    const subClass = ss && ss.ok ? 'ok' : 'exp';
-    const exp  = u.subExpiry ? new Date(u.subExpiry).toLocaleDateString('ru') : '—';
-    d.innerHTML =
-      '<div class="u-name">' + login + '</div>' +
-      '<div class="u-id">ID: ' + u.id + '</div>' +
-      '<div class="u-sub ' + subClass + '">' + subLabel + ' (до ' + exp + ')</div>';
-    el.appendChild(d);
-  });
+async function renderAdminUsers() {
+  const body = _admPw
+    ? { adminPass: _admPw }
+    : { login: currentUser.login, pass: currentUser.pass };
+  try {
+    const d  = await api('/api/admin/users', body);
+    const el = $('userList'); el.innerHTML = '';
+    const list = Object.entries(d.users);
+    if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет пользователей</div>'; return; }
+    list.forEach(([login, u]) => {
+      const div = document.createElement('div'); div.className = 'user-item';
+      const exp = u.subExpiry ? new Date(u.subExpiry).toLocaleDateString('ru') : '—';
+      div.innerHTML =
+        '<div class="u-name">' + login + '</div>' +
+        '<div class="u-id">ID: ' + u.id + '</div>' +
+        '<div class="u-sub ' + (u.subActive ? 'ok' : 'exp') + '">' + (u.subActive ? '✓ Активна до ' + exp : '✗ Нет подписки') + '</div>';
+      el.appendChild(div);
+    });
+  } catch(e) { console.error(e); }
 }
 
-function extendUser() {
+async function extendUser() {
   const uid  = $('admUserId').value.trim();
   const days = parseInt($('admExtDays').value) || 30;
-  const users = getUsers();
-  const entry = Object.entries(users).find(([, u]) => u.id === uid);
-  if (!entry) return alert('Пользователь не найден');
-  const [login, u] = entry;
-  const now  = Date.now();
-  const base = (u.subExpiry && u.subExpiry > now) ? u.subExpiry : now;
-  u.subExpiry = base + days * 86400000;
-  saveUsers(users);
-  renderAdminUsers();
-  alert(login + ': подписка продлена на ' + days + ' дней');
+  if (!uid) return;
+  const body = _admPw
+    ? { adminPass: _admPw, uid, days }
+    : { login: currentUser.login, pass: currentUser.pass, uid, days };
+  try {
+    await api('/api/admin/extend', body);
+    await renderAdminUsers();
+    alert('✓ Подписка продлена на ' + days + ' дней');
+  } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
-function revokeUser() {
-  const uid   = $('admUserId').value.trim();
-  const users = getUsers();
-  const entry = Object.entries(users).find(([, u]) => u.id === uid);
-  if (!entry) return alert('Пользователь не найден');
-  const [login, u] = entry;
-  if (!confirm('Заблокировать ' + login + '?')) return;
-  u.subExpiry = 0;
-  saveUsers(users);
-  renderAdminUsers();
-  alert(login + ' заблокирован');
+async function revokeUser() {
+  const uid = $('admUserId').value.trim();
+  if (!uid) return;
+  if (!confirm('Заблокировать пользователя?')) return;
+  const body = _admPw
+    ? { adminPass: _admPw, uid }
+    : { login: currentUser.login, pass: currentUser.pass, uid };
+  try {
+    await api('/api/admin/revoke', body);
+    await renderAdminUsers();
+  } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
 // Секретный хоткей: -=\ → открыть админку
