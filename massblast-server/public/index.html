@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MassBlast v7</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0c12;--s1:#13131c;--s2:#1c1c28;--bd:#2e2e42;
+  --red:#ff3c5f;--ora:#ff8c42;--txt:#eaeaf4;--dim:#5a5a7a;
+  --grn:#00dfa0;--yel:#ffd166;--blu:#5b8fff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 50% at 10% 10%,rgba(255,60,95,.07),transparent),
+             radial-gradient(ellipse 50% 60% at 90% 90%,rgba(255,140,66,.06),transparent)}
+
+/* ── AUTH SCREEN ── */
+.auth-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.auth-box{background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:36px 32px;width:100%;max-width:420px;position:relative}
+.auth-logo{font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+.auth-logo b{color:var(--red)}
+.auth-sub{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:28px}
+.auth-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--s2);border-radius:10px;padding:3px}
+.auth-tab{flex:1;text-align:center;padding:8px;border-radius:8px;cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);transition:all .18s}
+.auth-tab.on{background:var(--s1);color:var(--txt);border:1px solid var(--bd)}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:5px}
+.auth-field input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--txt);font-family:'Space Mono',monospace;font-size:12px;outline:none;transition:border-color .18s}
+.auth-field input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,60,95,.09)}
+.auth-btn{width:100%;background:linear-gradient(135deg,var(--red),#bd1e3a);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;padding:13px;cursor:pointer;margin-top:6px;transition:opacity .2s}
+.auth-btn:hover{opacity:.9}
+.auth-err{background:rgba(255,60,95,.1);border:1px solid rgba(255,60,95,.25);border-radius:8px;padding:9px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--red);margin-top:12px;display:none}
+.uid-badge{margin-top:18px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);display:none}
+.uid-badge span{color:var(--grn)}
+
+/* ── SUB SCREEN ── */
+.sub-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:90;padding:20px;display:none}
+.sub-box{background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:36px 32px;width:100%;max-width:440px}
+.sub-icon{font-size:40px;margin-bottom:16px}
+.sub-title{font-size:22px;font-weight:800;margin-bottom:6px}
+.sub-desc{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);line-height:1.8;margin-bottom:24px}
+.sub-uid{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--grn);margin-bottom:18px;word-break:break-all}
+.sub-inp{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--txt);font-family:'Space Mono',monospace;font-size:12px;outline:none;letter-spacing:2px;margin-bottom:10px;transition:border-color .18s}
+.sub-inp:focus{border-color:var(--grn);box-shadow:0 0 0 3px rgba(0,223,160,.09)}
+.sub-tg-btn{display:block;width:100%;background:linear-gradient(135deg,#229ED9,#1a7db0);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;padding:13px;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:10px;transition:opacity .2s;box-sizing:border-box}
+.sub-tg-btn:hover{opacity:.9}
+.sub-divider{text-align:center;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);margin:14px 0 12px;letter-spacing:2px}
+.sub-btn{width:100%;background:linear-gradient(135deg,var(--grn),#00a872);border:none;border-radius:10px;color:#000;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;padding:13px;cursor:pointer;transition:opacity .2s}
+.sub-btn:hover{opacity:.9}
+.sub-err{background:rgba(255,60,95,.1);border:1px solid rgba(255,60,95,.25);border-radius:8px;padding:9px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--red);margin-top:10px;display:none}
+.sub-logout{margin-top:14px;text-align:center;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);cursor:pointer}
+.sub-logout:hover{color:var(--red)}
+
+/* ── ADMIN PANEL ── */
+.adm-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;display:none;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+.adm-box{background:var(--s1);border:1px solid var(--ora);border-radius:20px;padding:30px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+.adm-title{font-size:18px;font-weight:800;color:var(--ora);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.adm-close{cursor:pointer;color:var(--dim);font-size:20px}
+.adm-close:hover{color:var(--red)}
+.adm-section{margin-bottom:22px}
+.adm-section h3{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--ora);text-transform:uppercase;margin-bottom:10px}
+.adm-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.adm-inp{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:8px 11px;color:var(--txt);font-family:'Space Mono',monospace;font-size:11px;outline:none;flex:1;min-width:100px}
+.adm-inp:focus{border-color:var(--ora)}
+.adm-btn{background:var(--s2);border:1px solid var(--ora);border-radius:8px;color:var(--ora);font-family:'Space Mono',monospace;font-size:10px;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.adm-btn:hover{background:rgba(255,140,66,.1)}
+.adm-btn.danger{border-color:var(--red);color:var(--red)}
+.adm-btn.danger:hover{background:rgba(255,60,95,.1)}
+.key-list{display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto;margin-top:8px}
+.key-item{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:7px 10px;font-family:'Space Mono',monospace;font-size:9px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.key-val{color:var(--grn);letter-spacing:1px;flex:1;word-break:break-all}
+.key-meta{color:var(--dim);flex-shrink:0}
+.key-used{color:var(--red);text-decoration:line-through}
+.user-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;margin-top:8px}
+.user-item{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;font-family:'Space Mono',monospace;font-size:9px}
+.user-item .u-name{color:var(--txt);font-size:11px;font-weight:700;margin-bottom:3px}
+.user-item .u-id{color:var(--dim)}
+.user-item .u-sub{margin-top:3px}
+.user-item .u-sub.ok{color:var(--grn)}
+.user-item .u-sub.exp{color:var(--red)}
+
+/* ── MAIN APP ── */
+.app{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:30px 20px 80px;display:none}
+header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:24px}
+.logo-title{font-size:clamp(20px,4vw,36px);font-weight:800;letter-spacing:-1.5px;line-height:1}
+.logo-title b{color:var(--red)}
+.logo-sub{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.hdr-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--bd);border-radius:100px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--dim)}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 7px var(--grn);animation:p 2s ease-in-out infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+.sub-pill{background:rgba(0,223,160,.08);border:1px solid rgba(0,223,160,.2);border-radius:100px;padding:4px 11px;font-family:'Space Mono',monospace;font-size:9px;color:var(--grn)}
+.sub-pill.exp{background:rgba(255,60,95,.08);border-color:rgba(255,60,95,.2);color:var(--red)}
+.user-pill{background:var(--s2);border:1px solid var(--bd);border-radius:100px;padding:4px 11px;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);cursor:pointer;display:flex;align-items:center;gap:5px}
+.user-pill:hover{border-color:var(--red);color:var(--red)}
+.adm-pill{background:rgba(255,140,66,.1);border:1px solid rgba(255,140,66,.3);border-radius:100px;padding:4px 12px;font-family:'Space Mono',monospace;font-size:9px;color:var(--ora);cursor:pointer;transition:all .15s}
+.adm-pill:hover{background:rgba(255,140,66,.2)}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:18px}
+.full{grid-column:1/-1}
+.sec{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--red);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec::before{content:'';width:3px;height:3px;background:var(--red);border-radius:50%;display:inline-block}
+textarea,input[type=text],input[type=number]{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:'Space Mono',monospace;font-size:11px;line-height:1.6;resize:vertical;outline:none;transition:border-color .18s}
+textarea:focus,input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,60,95,.09)}
+textarea{min-height:110px}
+.flbl{display:block;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;margin:10px 0 4px}
+
+.accrow{display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;flex-wrap:wrap}
+.accrow label{font-family:'Space Mono',monospace;font-size:10px;color:var(--ora);white-space:nowrap;letter-spacing:1px;flex-shrink:0}
+.accrow input[type=number]{max-width:72px;text-align:center;flex-shrink:0;padding:6px 10px}
+.accrow .acc-hint{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim)}
+.acc-avail{color:var(--grn);font-weight:700}
+
+.upzone{border:2px dashed var(--bd);border-radius:10px;padding:14px;text-align:center;cursor:pointer;margin-bottom:10px;transition:all .2s}
+.upzone:hover{border-color:var(--red);background:rgba(255,60,95,.02)}
+.upzone p{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim)}
+.upzone span{color:var(--red)}
+
+/* Список почт — только маски, без паролей */
+.alist{max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.alist::-webkit-scrollbar{width:3px}.alist::-webkit-scrollbar-thumb{background:var(--bd)}
+.arow{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:6px 9px;font-family:'Space Mono',monospace;font-size:10px}
+.arow.inactive{opacity:.3}
+.adot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--dim);transition:background .3s}
+.adot.act{background:var(--ora);box-shadow:0 0 5px var(--ora)}.adot.done{background:var(--grn)}.adot.fail{background:var(--red)}
+.aemail{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt)}
+.aname{font-size:9px;color:var(--dim);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.a-del{cursor:pointer;color:var(--dim);font-size:11px;padding:0 2px}.a-del:hover{color:var(--red)}
+
+.rtags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.rtag{background:rgba(255,140,66,.09);border:1px solid rgba(255,140,66,.2);border-radius:100px;padding:2px 8px;font-family:'Space Mono',monospace;font-size:10px;color:var(--ora);display:flex;align-items:center;gap:4px}
+.rx{cursor:pointer;color:var(--dim);font-size:11px;line-height:1}.rx:hover{color:var(--red)}
+.vrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.vbtn{background:var(--s2);border:1px solid var(--bd);color:var(--dim);padding:4px 10px;border-radius:6px;font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s}
+.vbtn:hover,.vbtn.on{border-color:var(--red);color:var(--red);background:rgba(255,60,95,.07)}
+.stats{display:flex;gap:8px;margin-bottom:13px}
+.stat{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center}
+.sn{font-size:19px;font-weight:800;letter-spacing:-1px}.sl{font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
+.s-t .sn{color:var(--txt)}.s-o .sn{color:var(--grn)}.s-e .sn{color:var(--red)}.s-q .sn{color:var(--yel)}
+.plist{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding-right:3px}
+.plist::-webkit-scrollbar{width:3px}.plist::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.pi{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;animation:fu .18s ease}
+@keyframes fu{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px}
+.psubj{font-family:'Space Mono',monospace;font-size:9px;color:var(--blu);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfr{font-family:'Space Mono',monospace;font-size:9px;color:var(--ora)}
+.pto{font-family:'Space Mono',monospace;font-size:9px;color:var(--dim)}
+.pb{font-family:'Space Mono',monospace;font-size:9px;padding:2px 7px;border-radius:100px;white-space:nowrap}
+.pb.wait{color:var(--yel);background:rgba(255,209,102,.1)}.pb.gen{color:var(--ora);background:rgba(255,140,66,.12)}
+.pb.rdy{color:var(--grn);background:rgba(0,223,160,.1)}.pb.sent{color:var(--grn);background:rgba(0,223,160,.17)}.pb.err{color:var(--red);background:rgba(255,60,95,.1)}
+.pt{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);line-height:1.55;white-space:pre-wrap;max-height:60px;overflow:hidden;position:relative}
+.pt::after{content:'';position:absolute;bottom:0;left:0;right:0;height:18px;background:linear-gradient(transparent,var(--s2))}
+.pgw{background:var(--s2);border-radius:100px;height:4px;overflow:hidden;margin-top:10px}
+.pgb{height:100%;background:linear-gradient(90deg,var(--red),var(--ora));border-radius:100px;transition:width .2s ease;box-shadow:0 0 8px rgba(255,60,95,.35);width:0%}
+.pgl{margin-top:5px;font-family:'Space Mono',monospace;font-size:10px;color:var(--dim)}
+.acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.bp{flex:1;min-width:140px;border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:12px 18px;cursor:pointer;transition:opacity .2s,transform .15s;position:relative;overflow:hidden}
+.bp-gen{background:linear-gradient(135deg,var(--blu),#3060cc)}.bp-send{background:linear-gradient(135deg,var(--grn),#00a872)}.bp-stop{background:linear-gradient(135deg,var(--red),#bd1e3a)}
+.bp::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);opacity:0;transition:opacity .2s}
+.bp:hover::after{opacity:1}.bp:active{transform:scale(.97)}.bp:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.bp-send:not(:disabled){box-shadow:0 0 18px rgba(0,223,160,.25);animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 18px rgba(0,223,160,.25)}50%{box-shadow:0 0 30px rgba(0,223,160,.45)}}
+.bs{background:var(--s2);border:1px solid var(--bd);border-radius:10px;color:var(--txt);font-family:'Syne',sans-serif;font-weight:600;font-size:12px;padding:12px 16px;cursor:pointer;transition:all .18s}
+.bs:hover{border-color:var(--red);color:var(--red)}.bs:disabled{opacity:.3;cursor:not-allowed}
+.drow{display:flex;align-items:center;gap:10px;margin-top:6px}
+.drow input[type=range]{flex:1;accent-color:var(--red);height:3px}
+.dv{font-family:'Space Mono',monospace;font-size:11px;color:var(--red);min-width:44px;text-align:right}
+.log{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:8px 11px;font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);line-height:2;max-height:120px;overflow-y:auto}
+.log::-webkit-scrollbar{width:3px}.log::-webkit-scrollbar-thumb{background:var(--bd)}
+.ll{display:block}.ok{color:var(--grn)}.er{color:var(--red)}.inf{color:var(--ora)}.wn{color:var(--yel)}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ AUTH SCREEN ════════════════════ -->
+<div class="auth-wrap" id="authWrap">
+  <div class="auth-box">
+    <div class="auth-logo">MASS<b>BLAST</b></div>
+    <div class="auth-sub">v7 · подпишись и работай</div>
+    <div class="auth-tabs">
+      <div class="auth-tab on" onclick="authTab('login')">Войти</div>
+      <div class="auth-tab" onclick="authTab('reg')">Регистрация</div>
+    </div>
+    <div id="authLogin">
+      <div class="auth-field"><label>Логин</label><input type="text" id="aLogin" placeholder="username" autocomplete="username"></div>
+      <div class="auth-field"><label>Пароль</label><input type="password" id="aPass" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="auth-btn" onclick="doLogin()">Войти</button>
+    </div>
+    <div id="authReg" style="display:none">
+      <div class="auth-field"><label>Придумайте логин</label><input type="text" id="rLogin" placeholder="username" autocomplete="username"></div>
+      <div class="auth-field"><label>Пароль</label><input type="password" id="rPass" placeholder="минимум 6 символов" autocomplete="new-password"></div>
+      <div class="auth-field"><label>Повторите пароль</label><input type="password" id="rPass2" placeholder="••••••••"></div>
+      <button class="auth-btn" onclick="doRegister()" style="background:linear-gradient(135deg,var(--blu),#3060cc)">Создать аккаунт</button>
+      <div class="uid-badge" id="uidBadge">Ваш ID пользователя: <span id="uidShow"></span></div>
+    </div>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ SUBSCRIPTION SCREEN ════════════════════ -->
+<div class="sub-wrap" id="subWrap">
+  <div class="sub-box">
+    <div class="sub-icon">🔑</div>
+    <div class="sub-title">Нужна подписка</div>
+    <div class="sub-desc">Чтобы пользоваться MassBlast, нужна подписка.<br>Купи её и получи ключ активации.<br><br>Ваш ID пользователя — передай его при покупке:</div>
+    <div class="sub-uid" id="subUid">—</div>
+    <input class="sub-inp" id="subKeyInp" type="text" placeholder="XXXX-XXXX-XXXX-XXXX">
+    <a href="https://t.me/username" target="_blank" class="sub-tg-btn">✈ Купить подписку в Telegram</a>
+    <div class="sub-divider">— уже есть ключ? —</div>
+    <button class="sub-btn" onclick="activateKey()">Активировать ключ</button>
+    <div class="sub-err" id="subErr"></div>
+    <div class="sub-logout" onclick="doLogout()">← Выйти из аккаунта</div>
+  </div>
+</div>
+
+<!-- ════════════════════ ADMIN PANEL ════════════════════ -->
+<div class="adm-wrap" id="admWrap">
+  <div class="adm-box">
+    <div class="adm-title">
+      ⚙ Админ-панель
+      <span class="adm-close" onclick="closeAdmin()">×</span>
+    </div>
+
+    <div class="adm-section">
+      <h3>Создать ключ подписки</h3>
+      <div class="adm-row">
+        <input class="adm-inp" type="number" id="keyDays" placeholder="Дней" min="1" value="30" style="max-width:90px">
+        <button class="adm-btn" onclick="genKey()">＋ Создать ключ</button>
+      </div>
+      <div class="key-list" id="keyList"></div>
+    </div>
+
+    <div class="adm-section">
+      <h3>Пользователи</h3>
+      <div class="user-list" id="userList"></div>
+    </div>
+
+    <div class="adm-section">
+      <h3>Действия</h3>
+      <div class="adm-row">
+        <input class="adm-inp" id="admUserId" placeholder="ID пользователя">
+        <input class="adm-inp" type="number" id="admExtDays" placeholder="Дней" style="max-width:90px" value="30">
+        <button class="adm-btn" onclick="extendUser()">Продлить</button>
+        <button class="adm-btn danger" onclick="revokeUser()">Заблокировать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ MAIN APP ════════════════════ -->
+<div class="app" id="mainApp">
+
+<header>
+  <div>
+    <div class="logo-title">MASS<b>BLAST</b></div>
+    <div class="logo-sub">Local Rephrase · No API</div>
+  </div>
+  <div class="hdr-right">
+    <div class="sub-pill" id="subPill">—</div>
+    <div class="adm-pill" id="admPill" onclick="openAdminDirect()" style="display:none">⚙ Админ</div>
+    <div class="user-pill" id="userPill" onclick="doLogout()"><span id="userPillName">—</span> · выйти</div>
+    <div class="badge"><span class="pulse"></span><span id="st">Готов</span></div>
+  </div>
+</header>
+
+<!-- Количество почт -->
+<div class="accrow">
+  <label>ПОЧТ ИСПОЛЬЗОВАТЬ</label>
+  <input type="number" id="accCount" min="1" value="1" oninput="onAccCountChange()">
+  <span class="acc-hint">из <span class="acc-avail" id="accAvail">0</span> сохранённых</span>
+</div>
+
+<div class="grid">
+
+  <!-- Отправители -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="sec" style="margin:0">Отправители</div>
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--grn)" id="acnt">0</span>
+    </div>
+    <div class="upzone" onclick="document.getElementById('fi').click()">
+      <p>📂 Загрузить TXT (email:пароль)</p>
+      <p style="margin-top:3px;font-size:9px">Почты сохраняются в вашем профиле — <span>автозагрузка при входе</span></p>
+      <input type="file" id="fi" accept=".txt" style="display:none" onchange="loadAccFile(this)">
+    </div>
+    <div class="alist" id="alist"></div>
+  </div>
+
+  <!-- Получатели -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="sec" style="margin:0">Получатели</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--ora)" id="rmeta">0 получателей</span>
+        <button class="bs" style="padding:3px 8px;font-size:10px" onclick="document.getElementById('rfi').click()">📂 TXT</button>
+        <input type="file" id="rfi" accept=".txt" style="display:none" onchange="loadRecipFile(this)">
+      </div>
+    </div>
+    <textarea id="ri" placeholder="email@org.ru, another@gov.ru" oninput="parseR()"></textarea>
+    <div class="rtags" id="rtags"></div>
+    <label class="flbl">Тема письма</label>
+    <input type="text" id="subj" placeholder="Жалоба на действия сотрудника">
+    <label class="flbl" style="margin-top:12px">Задержка между отправками</label>
+    <div class="drow">
+      <input type="range" min="0" max="15" step="0.5" value="2" oninput="setDelay(this.value)">
+      <span class="dv" id="dv">2.0 сек</span>
+    </div>
+  </div>
+
+  <!-- Текст -->
+  <div class="card full">
+    <div class="sec">Текст жалобы</div>
+    <textarea id="ot" placeholder="Вставьте текст. Строки с username/ID/ссылка не изменяются. Числа и ссылки сохраняются точно."></textarea>
+    <div class="vrow">
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--dim)">Перефраз:</span>
+      <button class="vbtn" data-l="light">Лёгкий</button>
+      <button class="vbtn on" data-l="medium">Средний</button>
+      <button class="vbtn" data-l="heavy">Глубокий</button>
+    </div>
+  </div>
+
+  <!-- Очередь -->
+  <div class="card full">
+    <div class="sec">Очередь</div>
+    <div class="stats">
+      <div class="stat s-t"><div class="sn" id="st2">0</div><div class="sl">Всего</div></div>
+      <div class="stat s-o"><div class="sn" id="so">0</div><div class="sl">Отправлено</div></div>
+      <div class="stat s-e"><div class="sn" id="se">0</div><div class="sl">Ошибки</div></div>
+      <div class="stat s-q"><div class="sn" id="sq">0</div><div class="sl">Очередь</div></div>
+    </div>
+    <div class="plist" id="pl">
+      <div style="text-align:center;padding:20px;font-family:'Space Mono',monospace;font-size:10px;color:var(--dim)">
+        Нажмите «✦ Сгенерировать»
+      </div>
+    </div>
+    <div class="pgw"><div class="pgb" id="pgb"></div></div>
+    <div class="pgl" id="pgl">Ожидание...</div>
+    <div class="acts">
+      <button class="bp bp-gen" id="btnGen" onclick="doGenerate()">✦ Сгенерировать тексты</button>
+      <button class="bp bp-send" id="btnSend" onclick="doSend()" disabled>▶ Отправить все</button>
+      <button class="bp bp-stop" id="btnStop" onclick="stopAll()" disabled style="flex:0;min-width:110px">⏹ Стоп</button>
+      <button class="bs" onclick="doReset()">✕ Сброс</button>
+    </div>
+  </div>
+
+  <!-- Лог -->
+  <div class="card full">
+    <div class="sec">Лог</div>
+    <div class="log" id="lg"><span class="ll inf">// Готов к работе.</span></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// API — все запросы идут на сервер
+// ══════════════════════════════════════════════════════════
+const API = window.location.origin; // автоматически берёт адрес сервера
+
+async function api(path, body) {
+  const r = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Ошибка сервера');
+  return d;
+}
+
+// Сессия — только логин+пароль в localStorage (пароль нужен для API запросов)
+const getSess = () => { try { return JSON.parse(localStorage.getItem('mb_sess')); } catch { return null; } };
+const saveSess = (d) => localStorage.setItem('mb_sess', JSON.stringify(d));
+
+function genSubKey() {
+  const seg = () => Math.random().toString(36).slice(2,6).toUpperCase();
+  return seg() + '-' + seg() + '-' + seg() + '-' + seg();
+}
+
+// ── Форматирование даты подписки ──
+function subStatus(expiry) {
+  if (!expiry) return null;
+  const now = Date.now();
+  if (expiry < now) return { ok: false, label: 'Подписка истекла' };
+  const days = Math.ceil((expiry - now) / 86400000);
+  return { ok: true, label: 'Подписка: ещё ' + days + ' дн.' };
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTH SCREENS
+// ══════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const sl = ms => new Promise(r => setTimeout(r, ms));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function authTab(t) {
+  $('authLogin').style.display = t === 'login' ? '' : 'none';
+  $('authReg').style.display   = t === 'reg'   ? '' : 'none';
+  document.querySelectorAll('.auth-tab').forEach((el,i) => el.classList.toggle('on', (t==='login')===!i));
+  $('authErr').style.display = 'none';
+}
+
+function showAuthErr(msg) { const e = $('authErr'); e.textContent = msg; e.style.display = 'block'; }
+
+async function doLogin() {
+  const login = $('aLogin').value.trim();
+  const pass  = $('aPass').value;
+  if (!login || !pass) return showAuthErr('Введите логин и пароль');
+  try {
+    const d = await api('/api/login', { login, pass });
+    saveSess({ login, pass });
+    afterLoginData(login, pass, d);
+  } catch(e) { showAuthErr(e.message); }
+}
+
+async function doRegister() {
+  const login = $('rLogin').value.trim().toLowerCase();
+  const pass  = $('rPass').value;
+  const pass2 = $('rPass2').value;
+  if (!login || login.length < 3) return showAuthErr('Логин минимум 3 символа');
+  if (!/^[a-z0-9_]+$/.test(login)) return showAuthErr('Только латиница, цифры и _');
+  if (pass.length < 6) return showAuthErr('Пароль минимум 6 символов');
+  if (pass !== pass2) return showAuthErr('Пароли не совпадают');
+  try {
+    const d = await api('/api/register', { login, pass });
+    $('uidShow').textContent = d.uid;
+    $('uidBadge').style.display = 'block';
+    $('authErr').style.display = 'none';
+    saveSess({ login, pass });
+    setTimeout(() => afterLoginData(login, pass, { uid: d.uid, subExpiry: null, subActive: false }), 1800);
+  } catch(e) { showAuthErr(e.message); }
+}
+
+function doLogout() {
+  saveSess(null);
+  location.reload();
+}
+
+async function afterLogin(login, pass) {
+  try {
+    const d = await api('/api/status', { login });
+    afterLoginData(login, pass, d);
+  } catch { doLogout(); }
+}
+
+function afterLoginData(login, pass, d) {
+  $('authWrap').style.display = 'none';
+  if (!d.subActive && !d.isAdmin) {
+    $('subUid').textContent = d.uid || '—';
+    $('subWrap').style.display = 'flex';
+  } else {
+    const ss = subStatus(d.subExpiry);
+    showApp(login, pass, d.uid, ss, d.isAdmin);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// SUBSCRIPTION KEY ACTIVATION
+// ══════════════════════════════════════════════════════════
+function activateKey() {
+  const raw  = $('subKeyInp').value.trim().toUpperCase();
+  const keys = getKeys();
+  const kd   = keys[raw];
+  if (!kd) return subErr('Ключ не найден');
+  if (kd.usedBy) return subErr('Ключ уже использован');
+
+  const sess  = getSess();
+  const users = getUsers();
+  const u     = users[sess];
+  const now   = Date.now();
+  const cur   = (u.subExpiry && u.subExpiry > now) ? u.subExpiry : now;
+  u.subExpiry = cur + kd.days * 86400000;
+  kd.usedBy   = u.id;
+  saveUsers(users);
+  keys[raw] = kd;
+  saveKeys(keys);
+  $('subErr').style.display = 'none';
+  $('subKeyInp').value = '';
+
+  const ss = subStatus(u.subExpiry);
+  $('subWrap').style.display = 'none';
+  showApp(sess, u, ss);
+}
+
+function subErr(msg) { const e = $('subErr'); e.textContent = msg; e.style.display = 'block'; }
+
+// ══════════════════════════════════════════════════════════
+// SHOW MAIN APP
+// ══════════════════════════════════════════════════════════
+let currentUser = null;
+
+async function showApp(login, pass, uid, ss, isAdmin) {
+  currentUser = { login, pass, isAdmin };
+  $('mainApp').style.display = 'block';
+  $('userPillName').textContent = login;
+  const pill = $('subPill');
+  pill.textContent = ss ? ss.label : '—';
+  pill.className   = 'sub-pill' + (ss && ss.ok ? '' : ' exp');
+  // Показываем кнопку админки только для админа
+  $('admPill').style.display = isAdmin ? 'block' : 'none';
+
+  // Загружаем сохранённые почты с сервера
+  try {
+    const d = await api('/api/emails/get', { login, pass });
+    accounts = (d.emails || []).map(e => ({ ...e, name: '' }));
+  } catch { accounts = []; }
+
+  $('accAvail').textContent = accounts.length;
+  const inp = $('accCount'); inp.max = accounts.length;
+  if (!inp.value || parseInt(inp.value) > accounts.length) inp.value = Math.min(accounts.length, 1) || 1;
+  renderAcc();
+  refreshTotal();
+  log('Добро пожаловать, ' + login + '. Загружено ' + accounts.length + ' почт из профиля.', 'ok');
+
+  // Периодическая проверка подписки
+  setInterval(async () => {
+    try {
+      const d = await api('/api/status', { login });
+      if (!d.subActive) doLogout();
+    } catch { doLogout(); }
+  }, 60000);
+}
+
+// ══════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════════════════
+function openAdmin() {
+  const pw = prompt('Пароль администратора:');
+  if (pw !== ADMIN_PASSWORD) { alert('Неверный пароль'); return; }
+  renderAdminKeys();
+  renderAdminUsers();
+  const el = $('admWrap'); el.style.display = 'flex';
+}
+function closeAdmin() { $('admWrap').style.display = 'none'; }
+
+function genKey() {
+  const days = parseInt($('keyDays').value) || 30;
+  const key  = genSubKey();
+  const keys = getKeys();
+  keys[key]  = { days, createdAt: Date.now(), usedBy: null };
+  saveKeys(keys);
+  renderAdminKeys();
+}
+
+function renderAdminKeys() {
+  const keys = getKeys();
+  const el   = $('keyList'); el.innerHTML = '';
+  const list = Object.entries(keys).sort((a,b) => b[1].createdAt - a[1].createdAt);
+  if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет ключей</div>'; return; }
+  list.forEach(([key, kd]) => {
+    const d = document.createElement('div');
+    d.className = 'key-item';
+    const date = new Date(kd.createdAt).toLocaleDateString('ru');
+    d.innerHTML =
+      '<span class="key-val ' + (kd.usedBy ? 'key-used' : '') + '">' + key + '</span>' +
+      '<span class="key-meta">' + kd.days + ' дн. · ' + date + (kd.usedBy ? ' · использован' : '') + '</span>' +
+      '<span style="cursor:pointer;color:var(--dim);font-size:11px" onclick="copyKey(\''+ key +'\')" title="Скопировать">⎘</span>';
+    el.appendChild(d);
+  });
+}
+
+function copyKey(key) { navigator.clipboard.writeText(key).catch(()=>{}); }
+
+function renderAdminUsers() {
+  const users = getUsers();
+  const el = $('userList'); el.innerHTML = '';
+  const list = Object.entries(users);
+  if (!list.length) { el.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:6px">Нет пользователей</div>'; return; }
+  list.forEach(([login, u]) => {
+    const ss  = subStatus(u.subExpiry);
+    const d   = document.createElement('div');
+    d.className = 'user-item';
+    const subLabel = ss ? ss.label : 'Нет подписки';
+    const subClass = ss && ss.ok ? 'ok' : 'exp';
+    const exp  = u.subExpiry ? new Date(u.subExpiry).toLocaleDateString('ru') : '—';
+    d.innerHTML =
+      '<div class="u-name">' + login + '</div>' +
+      '<div class="u-id">ID: ' + u.id + '</div>' +
+      '<div class="u-sub ' + subClass + '">' + subLabel + ' (до ' + exp + ')</div>';
+    el.appendChild(d);
+  });
+}
+
+function extendUser() {
+  const uid  = $('admUserId').value.trim();
+  const days = parseInt($('admExtDays').value) || 30;
+  const users = getUsers();
+  const entry = Object.entries(users).find(([, u]) => u.id === uid);
+  if (!entry) return alert('Пользователь не найден');
+  const [login, u] = entry;
+  const now  = Date.now();
+  const base = (u.subExpiry && u.subExpiry > now) ? u.subExpiry : now;
+  u.subExpiry = base + days * 86400000;
+  saveUsers(users);
+  renderAdminUsers();
+  alert(login + ': подписка продлена на ' + days + ' дней');
+}
+
+function revokeUser() {
+  const uid   = $('admUserId').value.trim();
+  const users = getUsers();
+  const entry = Object.entries(users).find(([, u]) => u.id === uid);
+  if (!entry) return alert('Пользователь не найден');
+  const [login, u] = entry;
+  if (!confirm('Заблокировать ' + login + '?')) return;
+  u.subExpiry = 0;
+  saveUsers(users);
+  renderAdminUsers();
+  alert(login + ' заблокирован');
+}
+
+// Секретный хоткей: -=\ → открыть админку
+const _admKeys = new Set();
+document.addEventListener('keydown', e => {
+  if (['-','=','\\'].includes(e.key)) {
+    _admKeys.add(e.key);
+    if (_admKeys.has('-') && _admKeys.has('=') && _admKeys.has('\\')) { _admKeys.clear(); openAdmin(); }
+  } else { _admKeys.clear(); }
+});
+
+// ══════════════════════════════════════════════════════════
+// CORE STATE
+// ══════════════════════════════════════════════════════════
+let accounts  = [];
+let recips    = [];
+let tasks     = [];
+let paraLevel = 'medium';
+let sendDelay = 2.0;
+let stopped   = false;
+let busy      = false;
+let generated = false;
+
+function log(msg, cls) {
+  const el = $('lg');
+  const s = document.createElement('span');
+  s.className = 'll ' + (cls||'');
+  s.textContent = '[' + new Date().toLocaleTimeString('ru') + '] ' + msg;
+  el.appendChild(document.createTextNode('\n'));
+  el.appendChild(s);
+  el.scrollTop = el.scrollHeight;
+}
+function prog(cur, tot, lbl) {
+  const p = tot ? Math.round(cur/tot*100) : 0;
+  $('pgb').style.width = p + '%';
+  $('pgl').textContent = (lbl||'') + ': ' + cur + ' / ' + tot + ' (' + p + '%)';
+}
+function setSt(t) { $('st').textContent = t; }
+
+// ══════════════════════════════════════════════════════════
+// CORE REPHRASE LOGIC
+// ══════════════════════════════════════════════════════════
+// Словарь синонимов (фразы → варианты через |)
+const SYN = {
+  // Обращения и вводные
+  'прошу':                          'настоятельно прошу|обращаюсь с просьбой|хочу попросить|вынужден просить',
+  'требую':                         'настоятельно прошу|прошу в обязательном порядке|обязываю рассмотреть',
+  'обращаюсь':                      'пишу|направляю данное обращение|выхожу с обращением',
+  'сообщаю':                        'довожу до вашего сведения|информирую|уведомляю|ставлю вас в известность',
+  'считаю':                         'полагаю|убеждён|уверен|нахожу нужным отметить',
+  'довожу до вашего сведения':      'сообщаю|информирую вас|ставлю в известность|хочу уведомить',
+  'настоящим':                      'данным письмом|этим обращением',
+
+  // Глаголы действия
+  'прошу рассмотреть':              'прошу принять к рассмотрению|прошу изучить|прошу разобраться',
+  'прошу принять меры':             'прошу предпринять необходимые действия|прошу отреагировать|прошу принять соответствующие меры',
+  'принять меры':                   'предпринять необходимые действия|принять соответствующие меры|отреагировать',
+  'разобраться':                    'рассмотреть данный вопрос|провести проверку|устранить нарушение',
+
+  // Существительные
+  'жалоба':                         'обращение|заявление|претензия',
+  'заявление':                      'обращение|жалоба|претензия',
+  'нарушение':                      'несоблюдение|ненадлежащее исполнение|противоправные действия|нарушение установленных норм',
+  'нарушения':                      'несоблюдения|противоправные действия|отклонения от норм',
+  'действия':                       'поступки|поведение|действия и бездействие',
+  'сотрудник':                      'работник|должностное лицо|специалист',
+  'сотрудника':                     'работника|должностного лица|специалиста',
+  'организация':                    'учреждение|ведомство|орган|структура',
+  'организации':                    'учреждения|ведомства|органа|структуры',
+  'ситуация':                       'обстоятельство|положение дел|случай',
+  'проблема':                       'трудность|вопрос|ситуация',
+  'порядок':                        'установленный порядок|регламент|требования',
+  'право':                          'законное право|полномочие|правомочие',
+  'закон':                          'законодательство|нормативный акт|действующий закон',
+  'законодательство':               'действующие законы|нормативные акты|правовые нормы',
+  'основание':                      'причина|обоснование|основание полагать',
+
+  // Прилагательные и местоимения
+  'данный':                         'указанный|настоящий|рассматриваемый',
+  'данного':                        'указанного|настоящего|рассматриваемого',
+  'данной':                         'указанной|настоящей',
+  'данное':                         'указанное|настоящее',
+  'указанный':                      'данный|упомянутый|названный',
+  'необходимый':                    'нужный|обязательный|требуемый|надлежащий',
+  'необходимые':                    'нужные|обязательные|требуемые',
+  'соответствующий':                'надлежащий|подобающий',
+  'соответствующие':                'надлежащие|подобающие',
+  'незаконный':                     'противоправный|неправомерный|противозаконный',
+  'незаконные':                     'противоправные|неправомерные|недопустимые',
+  'ненадлежащий':                   'неподобающий|неприемлемый|несоответствующий нормам',
+
+  // Предлоги и обороты
+  'в соответствии с':               'согласно|на основании|руководствуясь',
+  'на основании':                   'в соответствии с|согласно|руководствуясь',
+  'согласно':                       'в соответствии с|на основании|по смыслу',
+  'в связи с этим':                 'в данной ситуации|по данному факту|в связи с вышеизложенным|исходя из этого',
+  'в связи с':                      'по причине|вследствие|ввиду',
+  'таким образом':                  'следовательно|в итоге|из чего следует',
+  'кроме того':                     'помимо этого|в дополнение|к тому же|также следует отметить',
+  'однако':                         'тем не менее|при этом|вместе с тем',
+  'при этом':                       'одновременно|тем не менее|в то же время',
+
+  // Вежливость
+  'уважаемый':                      'глубокоуважаемый',
+  'уважаемая':                      'глубокоуважаемая',
+};
+
+// Варианты окончаний (добавляются в конец при medium/heavy)
+const OUTROS = [
+  '',
+  '\n\nПрошу рассмотреть моё обращение в установленные законом сроки.',
+  '\n\nОжидаю письменного ответа в установленный законом срок.',
+  '\n\nНадеюсь на принятие мер в кратчайшие сроки.',
+  '\n\nПрошу дать официальный письменный ответ на данное обращение.',
+  '\n\nПрошу проинформировать меня о принятых мерах.',
+];
+
+// Варианты перефразировки темы
+const SUBJ_TPL = [
+  s => s,
+  s => 'Обращение: ' + s,
+  s => s.replace(/^жалоба/i, 'Заявление'),
+  s => s.replace(/^жалоба/i, 'Претензия'),
+  s => s.replace(/^жалоба/i, 'Обращение гражданина'),
+  s => 'По факту: ' + s.toLowerCase(),
+  s => s + ' — требуется рассмотрение',
+  s => s + ' — прошу принять меры',
+  s => 'Срочно: ' + s,
+  s => 'Вх. обращение — ' + s,
+];
+
+// Строки с этими словами не трогаем целиком
+const SKIP_LINE_RE = /username|user.?id|userid|\bid\b|ссылка|link|url/i;
+// Внутри строк — числа и ссылки тоже не трогаем
+const SKIP_INLINE_RE = /https?:\/\/\S+|www\.\S+|№\s*[\d\-./]+|\b\d+([.,:/\-]\d+)*\b/gi;
+
+function processSegment(seg, rate, keys) {
+  let s = seg;
+  for (const key of keys) {
+    const variants = SYN[key].split('|');
+    const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re  = new RegExp('(?<![а-яёА-ЯЁa-zA-Z])' + esc + '(?![а-яёА-ЯЁa-zA-Z])', 'gi');
+    s = s.replace(re, match => {
+      if (Math.random() > rate) return match;
+      const chosen = pick(variants);
+      return (match[0] === match[0].toUpperCase() && match[0] !== match[0].toLowerCase())
+        ? chosen.charAt(0).toUpperCase() + chosen.slice(1)
+        : chosen;
+    });
+  }
+  return s;
+}
+
+function processLine(line, rate, keys) {
+  // Если строка содержит username/ID/ссылка — возвращаем как есть
+  if (SKIP_LINE_RE.test(line)) return line;
+
+  // Разбиваем строку на части: обычный текст и числа/ссылки
+  const result = [];
+  let last = 0;
+  let m;
+  const re = new RegExp(SKIP_INLINE_RE.source, 'gi');
+  while ((m = re.exec(line)) !== null) {
+    // Текст до совпадения — перефразируем
+    if (m.index > last) result.push(processSegment(line.slice(last, m.index), rate, keys));
+    // Само совпадение (число/ссылка) — не трогаем
+    result.push(m[0]);
+    last = m.index + m[0].length;
+  }
+  // Остаток
+  if (last < line.length) result.push(processSegment(line.slice(last), rate, keys));
+  return result.join('');
+}
+
+function localRephrase(text, level) {
+  const rate = level === 'light' ? 0.35 : level === 'heavy' ? 0.92 : 0.65;
+  const keys = Object.keys(SYN).sort((a, b) => b.length - a.length);
+
+  // Обрабатываем каждую строку отдельно
+  let result = text.split('\n').map(line => processLine(line, rate, keys)).join('\n');
+
+  // При heavy — перемешиваем абзацы (не строки с protected словами)
+  if (level === 'heavy') {
+    const blocks = result.split('\n\n');
+    if (blocks.length >= 3) {
+      const first = blocks[0], last = blocks[blocks.length - 1];
+      const mid = blocks.slice(1, -1).filter(b => !SKIP_LINE_RE.test(b));
+      const fixed = blocks.slice(1, -1).filter(b => SKIP_LINE_RE.test(b));
+      for (let i = mid.length - 1; i > 0; i--) {
+        if (Math.random() > 0.5) { const j = Math.floor(Math.random()*(i+1)); [mid[i],mid[j]]=[mid[j],mid[i]]; }
+      }
+      result = [first, ...mid, ...fixed, last].join('\n\n');
+    }
+  }
+
+  // Концовка при medium/heavy
+  if (level !== 'light') {
+    const outro = pick(OUTROS);
+    const hasOutro = OUTROS.slice(1).some(o => result.includes(o.trim().slice(0, 20)));
+    if (outro && !hasOutro) result = result.trimEnd() + outro;
+  }
+
+  return result.trim();
+}
+function localGenSubject(baseSubj, idx) {
+  return SUBJ_TPL[idx % SUBJ_TPL.length](baseSubj);
+}
+
+// ══════════════════════════════════════════════════════════
+// ACCOUNTS — сохранение в профиль пользователя
+// ══════════════════════════════════════════════════════════
+async function saveAccountsForUser() {
+  if (!currentUser) return;
+  try {
+    await api('/api/emails/save', {
+      login: currentUser.login,
+      pass:  currentUser.pass,
+      emails: accounts.map(a => ({ email: a.email, pass: a.pass }))
+    });
+  } catch(e) { console.warn('Не удалось сохранить почты:', e.message); }
+}
+
+function maskEmail(email) {
+  const [user, domain] = email.split('@');
+  const masked = user.slice(0,3) + '***';
+  return masked + '@' + domain;
+}
+
+function loadAccFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => parseAcc(e.target.result);
+  r.readAsText(f);
+  inp.value = '';
+}
+
+function parseAcc(raw) {
+  const newAccs = [];
+  for (const line of raw.trim().split('\n')) {
+    const t = line.trim(); if (!t || t.startsWith('#')) continue;
+    const ci = t.indexOf(':'); if (ci < 0) continue;
+    const email = t.slice(0, ci).trim().toLowerCase();
+    const pass  = t.slice(ci+1).trim();
+    if (email.includes('@') && pass && !accounts.find(a => a.email === email))
+      newAccs.push({ email, pass, name: '' });
+  }
+  accounts = [...accounts, ...newAccs];
+  saveAccountsForUser();
+  $('accAvail').textContent = accounts.length;
+  const inp = $('accCount'); inp.max = accounts.length;
+  if (parseInt(inp.value) > accounts.length) inp.value = accounts.length;
+  generated = false; $('btnSend').disabled = true;
+  renderAcc();
+  refreshTotal();
+  log('Добавлено ' + newAccs.length + ' новых почт. Всего: ' + accounts.length, 'ok');
+}
+
+function removeAcc(i) {
+  accounts.splice(i, 1);
+  saveAccountsForUser();
+  $('accAvail').textContent = accounts.length;
+  renderAcc(); refreshTotal();
+}
+
+function renderAcc() {
+  const el = $('alist'); el.innerHTML = '';
+  $('acnt').textContent = accounts.length + ' почт';
+  const active = parseInt($('accCount').value) || 0;
+  accounts.forEach((a, i) => {
+    const isActive = i < active;
+    const d = document.createElement('div');
+    d.className = 'arow' + (isActive ? '' : ' inactive');
+    d.innerHTML =
+      '<span class="adot" id="ad' + i + '"></span>' +
+      '<span class="aemail">' + maskEmail(a.email) + '</span>' +
+      '<span class="aname" id="an' + i + '">' + (a.name || (isActive ? '—' : 'пропуск')) + '</span>' +
+      '<span class="a-del" onclick="removeAcc(' + i + ')" title="Удалить">✕</span>';
+    el.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// RECIPIENTS
+// ══════════════════════════════════════════════════════════
+const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+
+function loadRecipFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const ex = $('ri').value.trim();
+    $('ri').value = ex ? ex + '\n' + e.target.result : e.target.result;
+    parseR(); log('Получатели загружены из файла', 'ok');
+  };
+  r.readAsText(f); inp.value = '';
+}
+
+function parseR() {
+  recips = [...new Set(($('ri').value.match(EMAIL_RE)||[]).map(e => e.toLowerCase()))];
+  renderR(); refreshTotal();
+}
+
+function renderR() {
+  const c = $('rtags'); c.innerHTML = '';
+  recips.slice(0,12).forEach((e,i) => {
+    const t = document.createElement('div'); t.className='rtag';
+    t.innerHTML = e + ' <span class="rx" data-idx="' + i + '">×</span>';
+    c.appendChild(t);
+  });
+  if (recips.length > 12) {
+    const m = document.createElement('div'); m.className='rtag';
+    m.style.color='var(--dim)'; m.textContent='+'+(recips.length-12)+' ещё'; c.appendChild(m);
+  }
+  $('rmeta').textContent = recips.length + ' получател' + (recips.length===1?'ь':recips.length<5?'я':'ей');
+}
+
+document.getElementById('rtags').addEventListener('click', e => {
+  const btn = e.target.closest('.rx'); if (!btn) return;
+  recips.splice(parseInt(btn.dataset.idx),1);
+  $('ri').value = recips.join('\n');
+  renderR(); refreshTotal();
+});
+
+// ══════════════════════════════════════════════════════════
+// ACC COUNT / DELAY
+// ══════════════════════════════════════════════════════════
+function onAccCountChange() {
+  const max = accounts.length;
+  const inp = $('accCount');
+  let v = parseInt(inp.value)||1;
+  if (v < 1) v = 1; if (max > 0 && v > max) v = max;
+  inp.value = v; renderAcc(); refreshTotal();
+}
+
+function getActive() {
+  const n = Math.min(parseInt($('accCount').value)||1, accounts.length);
+  return accounts.slice(0,n);
+}
+
+function refreshTotal() {
+  const n = getActive().length, r = recips.length;
+  $('st2').textContent = n*r; $('sq').textContent = n*r;
+}
+
+document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.vbtn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); paraLevel = b.dataset.l;
+}));
+function setDelay(v) { sendDelay=parseFloat(v); $('dv').textContent=sendDelay.toFixed(1)+' сек'; }
+
+// ══════════════════════════════════════════════════════════
+// GENERATE
+// ══════════════════════════════════════════════════════════
+async function doGenerate() {
+  if (busy) return;
+  const activeAccs = getActive();
+  if (!activeAccs.length) { log('Нет активных почт!', 'er'); return; }
+  if (!recips.length)     { log('Добавьте получателей!', 'er'); return; }
+  const origText = $('ot').value.trim();
+  if (!origText)          { log('Введите текст жалобы!', 'er'); return; }
+
+  busy=true; stopped=false; generated=false;
+  $('btnGen').disabled=true; $('btnSend').disabled=true; $('btnStop').disabled=false;
+  setSt('Генерация...');
+
+  const baseSubj = $('subj').value.trim() || 'Жалоба';
+  const pl = $('pl'); pl.innerHTML='';
+
+  tasks=[];
+  for (let ai=0; ai<activeAccs.length; ai++)
+    for (let ri=0; ri<recips.length; ri++)
+      tasks.push({ai,ri,idx:tasks.length,name:'',text:null,subject:null});
+
+  const total=tasks.length;
+  $('st2').textContent=total; $('sq').textContent=total;
+  $('so').textContent=0;      $('se').textContent=0;
+
+  for (const {ai,ri,idx} of tasks) {
+    const d=document.createElement('div'); d.className='pi';
+    d.innerHTML=
+      '<div class="ph">'+
+        '<span class="pfr" id="pfr'+idx+'">От: — &lt;'+maskEmail(activeAccs[ai].email)+'&gt;</span>'+
+        '<span class="pto">→ '+recips[ri]+'</span>'+
+        '<span class="pb wait" id="pb'+idx+'">ожидание</span>'+
+      '</div>'+
+      '<div class="psubj" id="psubj'+idx+'">Тема: ...</div>'+
+      '<div class="pt" id="pt'+idx+'">...</div>';
+    pl.appendChild(d);
+  }
+
+  log('▶ Генерация '+total+' вариантов...', 'inf');
+  prog(0, total, 'Генерация');
+
+  // Всё синхронно
+  for (const task of tasks) {
+    const {ai,ri,idx}=task; const acc=activeAccs[ai];
+    if (!acc.name) { acc.name=rndName(); const an=$('an'+ai); if(an) an.textContent=acc.name; }
+    task.name=acc.name;
+    task.subject=localGenSubject(baseSubj,idx);
+    task.text=localRephrase(origText,paraLevel);
+  }
+
+  // DOM батчем
+  for (const task of tasks) {
+    const {ai,ri,idx}=task; const acc=activeAccs[ai];
+    $('pfr'+idx).textContent='От: '+acc.name+' <'+maskEmail(acc.email)+'>';
+    $('psubj'+idx).textContent='Тема: '+task.subject;
+    $('pt'+idx).textContent=task.text.length>200?task.text.slice(0,200)+'…':task.text;
+    $('pb'+idx).className='pb rdy'; $('pb'+idx).textContent='✓ готово';
+    const dot=$('ad'+ai); if(dot) dot.className='adot done';
+  }
+
+  prog(total,total,'Готово');
+  busy=false; $('btnGen').disabled=false; $('btnStop').disabled=true;
+  generated=true; $('btnSend').disabled=false;
+  setSt('Готово к отправке');
+  log('✓ '+total+' вариантов готовы. Нажмите «▶ Отправить все»', 'ok');
+}
+
+// ══════════════════════════════════════════════════════════
+// SEND
+// ══════════════════════════════════════════════════════════
+async function doSend() {
+  if (busy||!generated||!tasks.length) return;
+  busy=true; stopped=false;
+  $('btnGen').disabled=true; $('btnSend').disabled=true; $('btnStop').disabled=false;
+  setSt('Отправка...');
+
+  const activeAccs=getActive();
+  let ok=0,err=0; const total=tasks.length;
+  log('▶ Отправка '+total+' писем...', 'inf');
+
+  for (let i=0; i<tasks.length; i++) {
+    if (stopped) break;
+    const task=tasks[i]; const {ai,ri,idx}=task;
+    const acc=activeAccs[ai]; const recip=recips[ri];
+    const pb=$('pb'+idx); const dot=$('ad'+ai);
+    pb.className='pb gen'; pb.textContent='📤 отправка...';
+    if(dot) dot.className='adot act';
+    setSt('Отправка '+(i+1)+'/'+total); prog(i,total,'Отправка');
+
+    try {
+      await sendMail({from:acc.email,pass:acc.pass,fromName:task.name,to:recip,subject:task.subject,body:task.text});
+      ok++; $('so').textContent=ok; $('sq').textContent=Math.max(0,total-ok-err);
+      pb.className='pb sent'; pb.textContent='✓ отправлено';
+      if(dot) dot.className='adot done';
+      log('✓ '+maskEmail(acc.email)+' → '+recip, 'ok');
+    } catch(e) {
+      err++; $('se').textContent=err; $('sq').textContent=Math.max(0,total-ok-err);
+      pb.className='pb err'; pb.textContent='✗ ошибка';
+      if(dot) dot.className='adot fail';
+      log('✗ '+maskEmail(acc.email)+' → '+recip+': '+e.message, 'er');
+    }
+    prog(i+1,total,'Отправка');
+    if(sendDelay>0&&i<tasks.length-1&&!stopped) await sl(sendDelay*1000);
+  }
+
+  busy=false; $('btnGen').disabled=false; $('btnStop').disabled=true;
+  setSt(stopped?'Остановлено':'Завершено');
+  log((stopped?'Остановлено':'✓ Завершено')+'. Отправлено: '+ok+', ошибок: '+err, 'ok');
+}
+
+function stopAll() { stopped=true; $('btnStop').disabled=true; setSt('Останавливаю...'); log('Стоп', 'wn'); }
+
+async function sendMail({from,pass,fromName,to,subject,body}) {
+  await api('/api/send', {
+    login: currentUser.login,
+    pass:  currentUser.pass,
+    from, fromPass: pass, fromName, to, subject, body
+  });
+}
+
+function doReset() {
+  if(busy) return;
+  recips=[]; tasks=[]; generated=false;
+  accounts.forEach(a=>a.name='');
+  $('ri').value=''; $('ot').value=''; $('subj').value='';
+  $('rtags').innerHTML=''; $('rmeta').textContent='0 получателей';
+  $('pl').innerHTML='<div style="text-align:center;padding:20px;font-family:Space Mono,monospace;font-size:10px;color:var(--dim)">Нажмите «✦ Сгенерировать»</div>';
+  $('pgb').style.width='0%'; $('pgl').textContent='Ожидание...';
+  ['st2','so','se','sq'].forEach(id=>$(id).textContent='0');
+  $('btnSend').disabled=true;
+  setSt('Готов'); log('Сброс', 'inf');
+}
+
+// ══════════════════════════════════════════════════════════
+// BOOT — проверяем сессию
+// ══════════════════════════════════════════════════════════
+(function boot() {
+  const sess = getSess();
+  if (sess && sess.login && sess.pass) {
+    afterLogin(sess.login, sess.pass);
+    return;
+  }
+  $('authWrap').style.display = 'flex';
+})();
+</script>
+</body>
+</html>
