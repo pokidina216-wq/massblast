@@ -98,6 +98,14 @@ header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap
 .user-pill:hover{border-color:var(--red);color:var(--red)}
 .adm-pill{background:rgba(255,140,66,.1);border:1px solid rgba(255,140,66,.3);border-radius:100px;padding:4px 12px;font-family:'Space Mono',monospace;font-size:9px;color:var(--ora);cursor:pointer;transition:all .15s}
 .adm-pill:hover{background:rgba(255,140,66,.2)}
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px}
+.modal-box{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:28px;width:100%;max-width:360px}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:16px}
+.modal-inp{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 13px;color:var(--txt);font-family:'Space Mono',monospace;font-size:13px;outline:none;margin-bottom:12px}
+.modal-inp:focus{border-color:var(--ora)}
+.modal-btns{display:flex;gap:8px}
+.modal-ok{flex:1;background:linear-gradient(135deg,var(--ora),#cc6a00);border:none;border-radius:8px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:11px;cursor:pointer}
+.modal-cancel{background:var(--s2);border:1px solid var(--bd);border-radius:8px;color:var(--dim);font-family:'Syne',sans-serif;font-size:13px;padding:11px 16px;cursor:pointer}
 
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
@@ -355,6 +363,18 @@ textarea{min-height:110px}
   </div>
 
 </div>
+</div>
+
+<!-- Password modal for admin -->
+<div class="modal-wrap" id="admModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">🔐 Пароль администратора</div>
+    <input class="modal-inp" type="password" id="admModalInp" placeholder="Введите пароль" autocomplete="off" onkeydown="if(event.key==='Enter')submitAdmModal()">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeAdmModal()">Отмена</button>
+      <button class="modal-ok" onclick="submitAdmModal()">Войти</button>
+    </div>
+  </div>
 </div>
 
 <script>
