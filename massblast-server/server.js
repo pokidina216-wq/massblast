@@ -167,7 +167,7 @@ app.post('/api/send', async (req, res) => {
 // ══════════════════════════════════════
 // ADMIN ROUTES (защищены паролем)
 // ══════════════════════════════════════
-const ADMIN_PASS    = process.env.ADMIN_PASSWORD || 'admin1234';
+const ADMIN_PASS    = process.env.ADMIN_PASSWORD || 'sasha2009030509';
 const ADMIN_LOGIN   = 'stmp';
 const ADMIN_HASH    = require('crypto').createHash('sha256').update('sasha2009030509' + 'massblast_salt').digest('hex');
 
