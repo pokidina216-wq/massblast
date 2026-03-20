@@ -1,5 +1,4 @@
 const express  = require('express');
-const nodemailer = require('nodemailer');
 const cors     = require('cors');
 const fs       = require('fs');
 const path     = require('path');
@@ -145,22 +144,25 @@ app.post('/api/send', async (req, res) => {
   if (!u || u.passHash !== hashPass(pass)) return res.status(401).json({ error: 'Не авторизован' });
   if (!subStatus(u.subExpiry)) return res.status(403).json({ error: 'Подписка истекла' });
 
+  const RESEND_KEY = process.env.RESEND_API_KEY || 're_ZBmtsfjN_2JivUNqs6zKdiv5QWNvYZTr3';
+
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: from, pass: fromPass },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + RESEND_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'MassBlast <onboarding@resend.dev>',
+        to: [to],
+        subject,
+        text: body,
+        reply_to: from
+      })
     });
-
-    await transporter.sendMail({
-      from: `"${fromName}" <${from}>`,
-      to,
-      subject,
-      text: body
-    });
-
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Resend error');
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
